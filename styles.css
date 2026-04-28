@@ -259,6 +259,12 @@ main h2:first-of-type {
     font-size: 0.8rem;
 }
 
+.education-info {
+    align-self: flex-start;
+    margin-top: calc(10px + (1.15rem * 1.7 / 2));
+    transform: translateY(-50%);
+}
+
 .education-item{
     margin-bottom: 25px;
 }
