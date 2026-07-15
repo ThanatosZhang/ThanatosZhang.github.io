@@ -11,17 +11,31 @@
   <script> // protect page
     if(window.requireAdmin) window.requireAdmin();
   </script>
-  <main class="container admin-box">
-    <h1>管理员面板</h1>
-    <div style="margin-bottom:12px"><button class="button" onclick="exportUsersFile()">导出用户文件</button> <button class="button ghost" onclick="logout()">登出</button></div>
-    <section>
-      <h3>用户列表</h3>
-      <div id="usersList"></div>
-    </section>
-    <section style="margin-top:18px">
-      <h3>登录/注册记录</h3>
-      <div id="logs"></div>
-      <button class="button ghost" onclick="clearAuthLogs(); renderLogs()">清空记录</button>
+  <main class="container admin-shell">
+    <section class="admin-box">
+      <div class="admin-topbar">
+        <div>
+          <p class="section-kicker">Admin console</p>
+          <h1>Administrator panel</h1>
+        </div>
+        <div class="admin-actions">
+          <button class="button" onclick="exportUsersFile()">Export users</button>
+          <button class="button ghost" onclick="logout()">Logout</button>
+        </div>
+      </div>
+
+      <section class="admin-section">
+        <h3>Users</h3>
+        <div id="usersList"></div>
+      </section>
+
+      <section class="admin-section">
+        <div class="admin-section-head">
+          <h3>Access history</h3>
+          <button class="button ghost small" onclick="clearAuthLogs(); renderLogs()">Clear logs</button>
+        </div>
+        <div id="logs"></div>
+      </section>
     </section>
   </main>
 
@@ -32,10 +46,10 @@
       container.innerHTML = '';
       const table = document.createElement('table');
       table.className = 'admin-table';
-      table.innerHTML = '<tr><th>用户名</th><th>密码</th><th>管理员</th><th>操作</th></tr>';
+      table.innerHTML = '<tr><th>Username</th><th>Password</th><th>Admin</th><th>Actions</th></tr>';
       for(const u of users){
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${u.username}</td><td><input value="${u.password}" data-username="${u.username}" class="pw"></td><td>${u.isAdmin? 'Yes':'No'}</td><td><button class='button' data-username='${u.username}'>保存</button> <button class='button ghost' data-del='${u.username}'>删除</button></td>`;
+        tr.innerHTML = `<td>${u.username}</td><td><input value="${u.password}" data-username="${u.username}" class="pw"></td><td>${u.isAdmin? 'Yes':'No'}</td><td><button class='button small' data-username='${u.username}'>Save</button> <button class='button ghost small' data-del='${u.username}'>Delete</button></td>`;
         table.appendChild(tr);
       }
       container.appendChild(table);
