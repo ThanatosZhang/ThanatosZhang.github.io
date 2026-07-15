@@ -28,6 +28,9 @@
   </main>
 
   <script>
+    const params = new URLSearchParams(window.location.search);
+    const nextPage = params.get('next');
+
     document.getElementById('loginForm').addEventListener('submit', async function(e){
       e.preventDefault();
       const u = document.getElementById('username').value;
@@ -37,7 +40,7 @@
       if(r.ok){
         msg.textContent = '登录成功，跳转中...';
         setTimeout(()=>{
-          if(u==='thanatoszhang') location.href='admin.html'; else location.href='index.html';
+          if(u==='thanatoszhang') location.href='admin.html'; else location.href = nextPage ? nextPage : 'index.html';
         },700);
       } else {
         msg.textContent = r.msg || '登录失败';

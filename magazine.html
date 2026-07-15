@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Protected Magazine</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="auth.js"></script>
+</head>
+<body>
+  <script>
+    const page = 'magazine';
+    if(!window.getCurrentUser()){
+      location.href = 'login.html?next=' + encodeURIComponent('magazine.html');
+    } else if(!window.isProtectedPageUnlocked(page)) {
+      const entered = prompt('Enter the magazine password');
+      if(window.verifyProtectedPassword(page, entered)) {
+        window.unlockProtectedPage(page);
+        window.location.reload();
+      } else {
+        location.href = 'login.html?next=' + encodeURIComponent('magazine.html');
+      }
+    }
+  </script>
+  <main class="container content-shell">
+    <section class="content-hero">
+      <div>
+        <p class="section-kicker">Protected content</p>
+        <h2>Magazine collection</h2>
+        <p>Curated articles and downloadable materials for members with access.</p>
+      </div>
+      <a href="index.html" class="button ghost">Back home</a>
+    </section>
+
+    <section class="content-grid-large">
+      <article class="content-card">
+        <h3>Featured issue</h3>
+        <p>Explore the latest curated edition with articles, notes, and downloadable resources.</p>
+        <div class="media-list">
+          <div class="media-item"><strong>Issue 01</strong><span>Curated thoughts and notes</span></div>
+          <div class="media-item"><strong>Issue 02</strong><span>Selected reflections</span></div>
+          <div class="media-item"><strong>Issue 03</strong><span>Long-form collection</span></div>
+        </div>
+      </article>
+      <article class="content-card">
+        <div class="section-head">
+          <h3>Available issues</h3>
+          <span class="status-pill">Protected access</span>
+        </div>
+        <div id="magazineContent" class="media-stack"></div>
+        <div id="magazineDetail" class="detail-panel">
+          <p class="muted">Select an issue to preview its contents.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script>
+    (async function(){
+      const container = document.getElementById('magazineContent');
+      const detail = document.getElementById('magazineDetail');
+      const files = await getProtectedFiles('magazine');
+      if(!files.length){
+        container.innerHTML = '<p class="muted">No files have been added yet.</p>';
+        detail.innerHTML = '<p class="muted">Upload content from the admin panel to populate this library.</p>';
+        return;
+      }
+
+      let activePreviewUrl = null;
+      function renderPreview(file){
+        if(activePreviewUrl){ URL.revokeObjectURL(activePreviewUrl); }
+        const source = file.data || file;
+        const type = (file.type || '').toLowerCase();
+        const previewUrl = URL.createObjectURL(source);
+        activePreviewUrl = previewUrl;
+        const previewMarkup = type.startsWith('image/')
+          ? `<img src="${previewUrl}" alt="${file.name}">`
+          : type === 'application/pdf'
+            ? `<iframe src="${previewUrl}" title="${file.name}"></iframe>`
+            : `<div class="detail-text">Preview ready. Open the file to read it in full.</div>`;
+
+        detail.innerHTML = `
+          <div class="detail-card">
+            <div class="detail-meta">
+              <strong>${file.name}</strong>
+              <p>${Math.round(file.size/1024/1024)} MB • ${type || 'document'}</p>
+            </div>
+            <div class="detail-preview">${previewMarkup}</div>
+            <div class="detail-actions">
+              <a class="button small" href="${previewUrl}" target="_blank" rel="noopener">Open file</a>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = files.map((f, index) => `
+        <div class="media-entry">
+          <div>
+            <strong>${f.name}</strong>
+            <div class="file-meta">${Math.round(f.size/1024/1024)} MB • ${f.type || 'document'}</div>
+          </div>
+          <button class="button small ghost preview-btn" data-index="${index}">Preview</button>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('.preview-btn').forEach(btn => {
+        btn.addEventListener('click', () => renderPreview(files[Number(btn.dataset.index)]));
+      });
+
+      renderPreview(files[0]);
+    })();
+  </script>
+</body>
+</html>

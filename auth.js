@@ -2,6 +2,9 @@
 (function(){
     const USERS_KEY = 'site_users_v1';
     const LOGS_KEY = 'site_auth_logs_v1';
+    const PROTECTED_PASSWORDS_KEY = 'site_protected_passwords_v1';
+    const FILE_DB = 'site_protected_files';
+    const FILE_STORE = 'files';
 
     async function fetchInitialUsers(){
         try{
@@ -12,7 +15,6 @@
             if(!stored){
                 localStorage.setItem(USERS_KEY, JSON.stringify(j.users || []));
             } else {
-                // ensure admin exists
                 const users = stored;
                 const adminExists = users.some(u=>u.username==='thanatoszhang');
                 if(!adminExists){
@@ -71,7 +73,11 @@
         return {ok:true, user: u};
     }
 
-    window.logout = function(){ sessionStorage.removeItem('currentUser'); location.href = 'index.html'; }
+    window.logout = function(){
+        sessionStorage.removeItem('currentUser');
+        Object.keys(sessionStorage).filter(k=>k.indexOf('protected:')===0).forEach(k=>sessionStorage.removeItem(k));
+        location.href = 'index.html';
+    }
 
     window.getCurrentUser = function(){ return JSON.parse(sessionStorage.getItem('currentUser')||'null'); }
 
@@ -101,7 +107,6 @@
     window.requireAuth = function(){
         const cur = getCurrentUser();
         if(!cur){
-            // redirect to login
             location.href = 'login.html';
         }
     }
@@ -109,9 +114,79 @@
     window.requireAdmin = function(){
         const cur = getCurrentUser();
         if(!cur || cur.username!=='thanatoszhang'){
-            // return 404 page to mimic forbidden
             location.href = '404.html';
         }
+    }
+
+    // Protected pages helpers
+    function getProtectedPasswordMap(){
+        return JSON.parse(localStorage.getItem(PROTECTED_PASSWORDS_KEY) || '{}');
+    }
+    function setProtectedPasswordMap(map){
+        localStorage.setItem(PROTECTED_PASSWORDS_KEY, JSON.stringify(map));
+    }
+    window.getProtectedPassword = function(page){
+        const map = getProtectedPasswordMap();
+        const defaults = {magazine: 'magazine-access', audio: 'audio-access'};
+        return map[page] || defaults[page] || '';
+    }
+    window.setProtectedPassword = function(page, password){
+        const map = getProtectedPasswordMap();
+        map[page] = password;
+        setProtectedPasswordMap(map);
+        return password;
+    }
+    window.unlockProtectedPage = function(page){ sessionStorage.setItem('protected:' + page, 'true'); }
+    window.lockProtectedPage = function(page){ sessionStorage.removeItem('protected:' + page); }
+    window.isProtectedPageUnlocked = function(page){ return sessionStorage.getItem('protected:' + page) === 'true'; }
+    window.verifyProtectedPassword = function(page, entered){ return (entered||'').trim() === window.getProtectedPassword(page); }
+    window.canAccessProtectedPage = function(page){ return !!window.getCurrentUser() && window.isProtectedPageUnlocked(page); }
+
+    function openFileDB(){
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(FILE_DB, 1);
+            req.onupgradeneeded = function(){
+                const db = req.result;
+                if(!db.objectStoreNames.contains(FILE_STORE)){
+                    const store = db.createObjectStore(FILE_STORE, {keyPath: 'id'});
+                    store.createIndex('page', 'page', {unique: false});
+                }
+            };
+            req.onsuccess = function(){ resolve(req.result); };
+            req.onerror = function(){ reject(req.error); };
+        });
+    }
+    window.getProtectedFiles = async function(page){
+        const db = await openFileDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FILE_STORE, 'readonly');
+            const store = tx.objectStore(FILE_STORE);
+            const index = store.index('page');
+            const req = index.getAll(page);
+            req.onsuccess = function(){ resolve(req.result || []); };
+            req.onerror = function(){ reject(req.error); };
+        });
+    }
+    window.addProtectedFile = async function(page, file){
+        if(!file) throw new Error('No file selected');
+        if(file.size > 23 * 1024 * 1024) throw new Error('File exceeds 23MB');
+        const db = await openFileDB();
+        const record = {id: Date.now() + '-' + Math.random().toString(16).slice(2), page, name: file.name, type: file.type, size: file.size, data: file};
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FILE_STORE, 'readwrite');
+            tx.objectStore(FILE_STORE).put(record);
+            tx.oncomplete = function(){ resolve(record); };
+            tx.onerror = function(){ reject(tx.error); };
+        });
+    }
+    window.deleteProtectedFile = async function(id){
+        const db = await openFileDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FILE_STORE, 'readwrite');
+            tx.objectStore(FILE_STORE).delete(id);
+            tx.oncomplete = function(){ resolve(true); };
+            tx.onerror = function(){ reject(tx.error); };
+        });
     }
 
     // Admin helpers
@@ -139,10 +214,8 @@
         URL.revokeObjectURL(url);
     }
 
-    // Merge initial users.json on load
     fetchInitialUsers();
 
-    // expose logs
     window.getAuthLogs = function(){ return JSON.parse(localStorage.getItem(LOGS_KEY) || '[]'); }
     window.clearAuthLogs = function(){ localStorage.removeItem(LOGS_KEY); }
 

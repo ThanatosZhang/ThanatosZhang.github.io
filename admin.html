@@ -28,6 +28,39 @@
       </div>
 
       <section class="admin-section">
+        <h3>Protected content passwords</h3>
+        <div class="admin-grid">
+          <label>Magazine password<input id="magazinePasswordValue"></label>
+          <label>Audio password<input id="audioPasswordValue"></label>
+        </div>
+        <div class="admin-actions" style="margin-top:10px;">
+          <button class="button small" onclick="saveProtectedPasswords()">Save passwords</button>
+        </div>
+      </section>
+
+      <section class="admin-section">
+        <h3>Upload files (max 23MB)</h3>
+        <div class="admin-grid">
+          <label>Magazine file<input type="file" id="magazineFileInput"></label>
+          <label>Audio file<input type="file" id="audioFileInput"></label>
+        </div>
+        <div class="admin-actions" style="margin-top:10px;">
+          <button class="button small" onclick="uploadProtectedFile('magazine')">Upload to magazine</button>
+          <button class="button small ghost" onclick="uploadProtectedFile('audio')">Upload to audio</button>
+        </div>
+        <div class="admin-grid" style="margin-top:12px;">
+          <div>
+            <h4>Magazine files</h4>
+            <div id="magazineFiles"></div>
+          </div>
+          <div>
+            <h4>Audio files</h4>
+            <div id="audioFiles"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="admin-section">
         <h3>Users</h3>
         <div id="usersList"></div>
       </section>
@@ -43,6 +76,37 @@
   </main>
 
   <script>
+    function renderProtectedSettings(){
+      document.getElementById('magazinePasswordValue').value = getProtectedPassword('magazine');
+      document.getElementById('audioPasswordValue').value = getProtectedPassword('audio');
+      renderProtectedAssets('magazine', 'magazineFiles');
+      renderProtectedAssets('audio', 'audioFiles');
+    }
+
+    async function saveProtectedPasswords(){
+      setProtectedPassword('magazine', document.getElementById('magazinePasswordValue').value);
+      setProtectedPassword('audio', document.getElementById('audioPasswordValue').value);
+      alert('Passwords saved');
+    }
+
+    async function uploadProtectedFile(page){
+      const input = document.getElementById(page === 'magazine' ? 'magazineFileInput' : 'audioFileInput');
+      const file = input.files[0];
+      if(!file){ alert('Please choose a file'); return; }
+      try{
+        await addProtectedFile(page, file);
+        input.value = '';
+        renderProtectedAssets(page, page === 'magazine' ? 'magazineFiles' : 'audioFiles');
+      } catch(err){ alert(err.message || 'Upload failed'); }
+    }
+
+    async function renderProtectedAssets(page, targetId){
+      const container = document.getElementById(targetId);
+      const files = await getProtectedFiles(page);
+      if(!files.length){ container.innerHTML = '<p class="muted">No files yet.</p>'; return; }
+      container.innerHTML = files.map(f => `<div class="file-entry">${f.name} <span class="file-meta">(${Math.round(f.size/1024/1024)}MB)</span> <button class="button ghost small" onclick="deleteProtectedFile('${f.id}').then(()=>renderProtectedAssets('${page}','${targetId}'))">Delete</button></div>`).join('');
+    }
+
     function renderUsers(){
       const users = adminListUsers();
       const container = document.getElementById('usersList');
@@ -75,6 +139,7 @@
       c.innerHTML = logs.map(l=> `<div class="log">${l.when} — ${l.type} — ${l.username} — ${l.ip} ${l.city||''} ${l.region||''} ${l.country||''}</div>`).join('');
     }
 
+    renderProtectedSettings();
     renderUsers(); renderLogs();
   </script>
 </body>

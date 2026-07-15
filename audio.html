@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Protected Audio</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="auth.js"></script>
+</head>
+<body>
+  <script>
+    const page = 'audio';
+    if(!window.getCurrentUser()){
+      location.href = 'login.html?next=' + encodeURIComponent('audio.html');
+    } else if(!window.isProtectedPageUnlocked(page)) {
+      const entered = prompt('Enter the audio password');
+      if(window.verifyProtectedPassword(page, entered)) {
+        window.unlockProtectedPage(page);
+        window.location.reload();
+      } else {
+        location.href = 'login.html?next=' + encodeURIComponent('audio.html');
+      }
+    }
+  </script>
+  <main class="container content-shell">
+    <section class="content-hero">
+      <div>
+        <p class="section-kicker">Protected content</p>
+        <h2>Audio library</h2>
+        <p>Private audio pieces and resources for authorized listeners.</p>
+      </div>
+      <a href="index.html" class="button ghost">Back home</a>
+    </section>
+
+    <section class="content-grid-large">
+      <article class="content-card">
+        <h3>Now playing</h3>
+        <p>Enjoy a focused listening experience with curated audio available to verified members.</p>
+        <div id="audioPlayerPanel" class="player-panel">
+          <p class="muted">Choose a track to begin listening.</p>
+        </div>
+      </article>
+      <article class="content-card">
+        <div class="section-head">
+          <h3>Available audio</h3>
+          <span class="status-pill">Protected access</span>
+        </div>
+        <div id="audioContent" class="media-stack"></div>
+      </article>
+    </section>
+  </main>
+  <script>
+    (async function(){
+      const container = document.getElementById('audioContent');
+      const panel = document.getElementById('audioPlayerPanel');
+      const files = await getProtectedFiles('audio');
+      if(!files.length){
+        container.innerHTML = '<p class="muted">No files have been added yet.</p>';
+        return;
+      }
+
+      let activeUrl = null;
+      let activeAudio = null;
+
+      function showPlayer(file, url){
+        if(activeUrl){ URL.revokeObjectURL(activeUrl); }
+        activeUrl = url;
+        if(activeAudio){ activeAudio.remove(); }
+
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.preload = 'metadata';
+        audio.src = url;
+        activeAudio = audio;
+
+        panel.innerHTML = `
+          <div class="player-head">
+            <strong>${file.name}</strong>
+            <span>${Math.round(file.size/1024/1024)} MB • ${file.type || 'audio'}</span>
+          </div>
+          <div class="player-body"></div>
+        `;
+        panel.querySelector('.player-body').appendChild(audio);
+        audio.play().catch(()=>{});
+      }
+
+      function stopPlayer(){
+        if(activeAudio){ activeAudio.pause(); activeAudio.remove(); activeAudio = null; }
+        if(activeUrl){ URL.revokeObjectURL(activeUrl); activeUrl = null; }
+        panel.innerHTML = '<p class="muted">Choose a track to begin listening.</p>';
+      }
+
+      container.innerHTML = files.map((f, index) => `
+        <div class="media-entry">
+          <div>
+            <strong>${f.name}</strong>
+            <div class="file-meta">${Math.round(f.size/1024/1024)} MB • ${f.type || 'audio'}</div>
+          </div>
+          <div class="media-actions">
+            <button class="button small" data-index="${index}" data-action="play">Play</button>
+            <button class="button small ghost" data-index="${index}" data-action="stop">Stop</button>
+          </div>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const index = Number(btn.dataset.index);
+          const file = files[index];
+          if(!file) return;
+          if(btn.dataset.action === 'stop'){ stopPlayer(); return; }
+          const source = file.data || file;
+          showPlayer(file, URL.createObjectURL(source));
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
