@@ -1,6 +1,7 @@
 // Simple front-end auth manager for static GitHub Pages
 (function(){
     const USERS_KEY = 'site_users_v1';
+    const CURRENT_USER_KEY = 'site_current_user_v1';
     const LOGS_KEY = 'site_auth_logs_v1';
     const PROTECTED_PASSWORDS_KEY = 'site_protected_passwords_v1';
     const FILE_DB = 'site_protected_files';
@@ -16,9 +17,15 @@
                 localStorage.setItem(USERS_KEY, JSON.stringify(j.users || []));
             } else {
                 const users = stored;
-                const adminExists = users.some(u=>u.username==='thanatoszhang');
-                if(!adminExists){
-                    users.push(...(j.users||[]));
+                const defaults = j.users || [];
+                let changed = false;
+                for(const defUser of defaults){
+                    if(!users.some(u => u.username === defUser.username)){
+                        users.push(defUser);
+                        changed = true;
+                    }
+                }
+                if(changed){
                     localStorage.setItem(USERS_KEY, JSON.stringify(users));
                 }
             }
@@ -59,6 +66,9 @@
         const user = {username, password, createdAt: new Date().toISOString(), isAdmin: false};
         users.push(user);
         setUsers(users);
+        const currentUser = {username: user.username, isAdmin: false, when: new Date().toISOString()};
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
         await recordEvent('register', username);
         return {ok:true, user};
     }
@@ -68,23 +78,29 @@
         const u = findUser(username);
         if(!u) return {ok:false, msg:'用户不存在'};
         if(u.password !== password) return {ok:false, msg:'密码错误'};
-        sessionStorage.setItem('currentUser', JSON.stringify({username: u.username, isAdmin: !!u.isAdmin, when: new Date().toISOString()}));
+        const currentUser = {username: u.username, isAdmin: !!u.isAdmin, when: new Date().toISOString()};
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
         await recordEvent('login', username);
         return {ok:true, user: u};
     }
 
     window.logout = function(){
+        localStorage.removeItem(CURRENT_USER_KEY);
         sessionStorage.removeItem('currentUser');
         Object.keys(sessionStorage).filter(k=>k.indexOf('protected:')===0).forEach(k=>sessionStorage.removeItem(k));
         location.href = 'index.html';
     }
 
-    window.getCurrentUser = function(){ return JSON.parse(sessionStorage.getItem('currentUser')||'null'); }
+    window.getCurrentUser = function(){
+        return JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || sessionStorage.getItem('currentUser') || 'null');
+    }
 
     window.updateAuthNav = function() {
         const cur = getCurrentUser();
         const registerLink = document.getElementById('register-link');
         const loginLink = document.getElementById('login-link');
+        const adminLink = document.getElementById('admin-link');
         if (registerLink && loginLink) {
             if (cur) {
                 registerLink.textContent = 'Logout';
@@ -100,6 +116,13 @@
                 loginLink.textContent = 'Login';
                 loginLink.href = 'login.html';
                 loginLink.onclick = null;
+            }
+        }
+        if(adminLink){
+            if(cur && cur.isAdmin){
+                adminLink.style.display = 'inline-block';
+            } else {
+                adminLink.style.display = 'none';
             }
         }
     }

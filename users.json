@@ -5,6 +5,12 @@
       "password": "1234567890",
       "createdAt": "2025-01-01T00:00:00Z",
       "isAdmin": true
+    },
+    {
+      "username": "1",
+      "password": "88888888",
+      "createdAt": "2026-07-15T00:00:00Z",
+      "isAdmin": false
     }
   ]
 }
