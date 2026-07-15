@@ -75,6 +75,29 @@
 
     window.getCurrentUser = function(){ return JSON.parse(sessionStorage.getItem('currentUser')||'null'); }
 
+    window.updateAuthNav = function() {
+        const cur = getCurrentUser();
+        const registerLink = document.getElementById('register-link');
+        const loginLink = document.getElementById('login-link');
+        if (registerLink && loginLink) {
+            if (cur) {
+                registerLink.textContent = 'Logout';
+                registerLink.href = '#';
+                registerLink.onclick = function(e){ e.preventDefault(); logout(); };
+                loginLink.textContent = 'Home';
+                loginLink.href = 'index.html';
+                loginLink.onclick = null;
+            } else {
+                registerLink.textContent = 'Register';
+                registerLink.href = 'register.html';
+                registerLink.onclick = null;
+                loginLink.textContent = 'Login';
+                loginLink.href = 'login.html';
+                loginLink.onclick = null;
+            }
+        }
+    }
+
     window.requireAuth = function(){
         const cur = getCurrentUser();
         if(!cur){
