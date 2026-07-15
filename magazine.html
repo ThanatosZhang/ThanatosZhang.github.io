@@ -62,58 +62,84 @@
       const container = document.getElementById('magazineContent');
       const detail = document.getElementById('magazineDetail');
       if(window.ensureMagazinePresetFiles){ await window.ensureMagazinePresetFiles(); }
+
+      const presetEntries = window.getMagazinePresetEntries ? window.getMagazinePresetEntries() : [];
       const files = await getProtectedFiles('magazine');
-      if(!files.length){
+      const entries = [];
+      const seen = new Set();
+
+      presetEntries.forEach(entry => {
+        const key = (entry.name || '').toLowerCase();
+        if(!seen.has(key)) {
+          entries.push(entry);
+          seen.add(key);
+        }
+      });
+
+      files.forEach(file => {
+        const key = (file.name || '').toLowerCase();
+        if(!seen.has(key)) {
+          entries.push(file);
+          seen.add(key);
+        }
+      });
+
+      if(!entries.length){
         container.innerHTML = '<p class="muted">No files have been added yet.</p>';
         detail.innerHTML = '<p class="muted">Upload content from the admin panel to populate this library.</p>';
         return;
       }
 
+      function getEntryOpenUrl(entry){
+        if(entry.path){ return entry.path; }
+        if(entry.data){ return URL.createObjectURL(entry.data); }
+        return '#';
+      }
+
       let activePreviewUrl = null;
-      function renderPreview(file){
+      function renderPreview(entry){
         if(activePreviewUrl){ URL.revokeObjectURL(activePreviewUrl); }
-        const source = file.data || file;
-        const type = (file.type || '').toLowerCase();
-        const previewUrl = URL.createObjectURL(source);
-        activePreviewUrl = previewUrl;
+        const type = (entry.type || '').toLowerCase();
+        const previewUrl = entry.path || (entry.data ? URL.createObjectURL(entry.data) : '');
+        activePreviewUrl = previewUrl && entry.data ? previewUrl : null;
         const previewMarkup = type.startsWith('image/')
-          ? `<img src="${previewUrl}" alt="${file.name}">`
+          ? `<img src="${previewUrl}" alt="${entry.name}">`
           : type === 'application/pdf'
-            ? `<iframe src="${previewUrl}" title="${file.name}"></iframe>`
+            ? `<iframe src="${previewUrl}" title="${entry.name}"></iframe>`
             : `<div class="detail-text">Preview ready. Open the file to read it in full.</div>`;
 
         detail.innerHTML = `
           <div class="detail-card">
             <div class="detail-meta">
-              <strong>${file.name}</strong>
-              <p>${Math.round(file.size/1024/1024)} MB • ${type || 'document'}</p>
+              <strong>${entry.name}</strong>
+              <p>${Math.round((entry.size || 0)/1024/1024)} MB • ${type || 'document'}</p>
             </div>
             <div class="detail-preview">${previewMarkup}</div>
             <div class="detail-actions">
-              <a class="button small" href="${previewUrl}" target="_blank" rel="noopener">Open file</a>
+              <a class="button small" href="${entry.path || getEntryOpenUrl(entry)}" target="_blank" rel="noopener">Open file</a>
             </div>
           </div>
         `;
       }
 
-      container.innerHTML = files.map((f, index) => `
+      container.innerHTML = entries.map((entry, index) => `
         <div class="file-card">
           <div class="file-card-main">
-            <div class="file-card-title">${f.name}</div>
-            <div class="file-meta">${Math.round(f.size/1024/1024)} MB • ${f.type || 'document'}</div>
+            <div class="file-card-title">${entry.name}</div>
+            <div class="file-meta">${Math.round((entry.size || 0)/1024/1024)} MB • ${entry.type || 'document'}</div>
           </div>
           <div class="file-card-actions">
             <button class="button small ghost preview-btn" data-index="${index}">Preview</button>
-            <a class="button small" href="${URL.createObjectURL(f.data || f)}" target="_blank" rel="noopener">Open</a>
+            <a class="button small" href="${getEntryOpenUrl(entry)}" target="_blank" rel="noopener">Open</a>
           </div>
         </div>
       `).join('');
 
       container.querySelectorAll('.preview-btn').forEach(btn => {
-        btn.addEventListener('click', () => renderPreview(files[Number(btn.dataset.index)]));
+        btn.addEventListener('click', () => renderPreview(entries[Number(btn.dataset.index)]));
       });
 
-      renderPreview(files[0]);
+      renderPreview(entries[0]);
     })();
   </script>
 </body>

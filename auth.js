@@ -212,14 +212,36 @@
         });
     }
 
+    window.getMagazinePresetEntries = function(){
+        return [
+            {
+                name: 'The Economist USA 06.27.2026.pdf',
+                path: 'files/The%20Economist%20USA%2006.27.2026.pdf',
+                type: 'application/pdf',
+                size: 0,
+                source: 'preset'
+            },
+            {
+                name: 'The Atlantic 06.2026.pdf',
+                path: 'files/The%20Atlantic%2006.2026.pdf',
+                type: 'application/pdf',
+                size: 0,
+                source: 'preset'
+            },
+            {
+                name: '四六级生词表.pdf',
+                path: 'files/%E5%9B%9B%E5%85%AD%E7%BA%A7%E7%94%9F%E8%AF%8D%E8%A1%A8.pdf',
+                type: 'application/pdf',
+                size: 0,
+                source: 'preset'
+            }
+        ];
+    };
+
     window.ensureMagazinePresetFiles = async function(){
         const existing = await window.getProtectedFiles('magazine');
         const names = new Set(existing.map(f => (f.name || '').toLowerCase()));
-        const presets = [
-            {name: 'The Economist USA 06.27.2026.pdf', path: 'files/The%20Economist%20USA%2006.27.2026.pdf'},
-            {name: 'The Atlantic 06.2026.pdf', path: 'files/The%20Atlantic%2006.2026.pdf'},
-            {name: '四六级生词表.pdf', path: 'files/%E5%9B%9B%E5%85%AD%E7%BA%A7%E7%94%9F%E8%AF%8D%E8%A1%A8.pdf'}
-        ];
+        const presets = window.getMagazinePresetEntries();
 
         for (const preset of presets) {
             if(names.has(preset.name.toLowerCase())) continue;
