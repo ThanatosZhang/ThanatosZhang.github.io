@@ -47,9 +47,12 @@
           <h3>Available issues</h3>
           <span class="status-pill">Protected access</span>
         </div>
+        <div class="section-head">
+          <span class="status-pill">Preset access ready</span>
+        </div>
         <div id="magazineContent" class="media-stack"></div>
         <div id="magazineDetail" class="detail-panel">
-          <p class="muted">Select an issue to preview its contents.</p>
+          <p class="muted">Select a preset issue to preview its contents.</p>
         </div>
       </article>
     </section>
@@ -58,6 +61,7 @@
     (async function(){
       const container = document.getElementById('magazineContent');
       const detail = document.getElementById('magazineDetail');
+      if(window.ensureMagazinePresetFiles){ await window.ensureMagazinePresetFiles(); }
       const files = await getProtectedFiles('magazine');
       if(!files.length){
         container.innerHTML = '<p class="muted">No files have been added yet.</p>';
@@ -93,12 +97,15 @@
       }
 
       container.innerHTML = files.map((f, index) => `
-        <div class="media-entry">
-          <div>
-            <strong>${f.name}</strong>
+        <div class="file-card">
+          <div class="file-card-main">
+            <div class="file-card-title">${f.name}</div>
             <div class="file-meta">${Math.round(f.size/1024/1024)} MB • ${f.type || 'document'}</div>
           </div>
-          <button class="button small ghost preview-btn" data-index="${index}">Preview</button>
+          <div class="file-card-actions">
+            <button class="button small ghost preview-btn" data-index="${index}">Preview</button>
+            <a class="button small" href="${URL.createObjectURL(f.data || f)}" target="_blank" rel="noopener">Open</a>
+          </div>
         </div>
       `).join('');
 

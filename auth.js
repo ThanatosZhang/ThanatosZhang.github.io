@@ -212,6 +212,30 @@
         });
     }
 
+    window.ensureMagazinePresetFiles = async function(){
+        const existing = await window.getProtectedFiles('magazine');
+        const names = new Set(existing.map(f => (f.name || '').toLowerCase()));
+        const presets = [
+            {name: 'The Economist USA 06.27.2026.pdf', path: 'files/The%20Economist%20USA%2006.27.2026.pdf'},
+            {name: 'The Atlantic 06.2026.pdf', path: 'files/The%20Atlantic%2006.2026.pdf'},
+            {name: '四六级生词表.pdf', path: 'files/%E5%9B%9B%E5%85%AD%E7%BA%A7%E7%94%9F%E8%AF%8D%E8%A1%A8.pdf'}
+        ];
+
+        for (const preset of presets) {
+            if(names.has(preset.name.toLowerCase())) continue;
+            try {
+                const res = await fetch(preset.path, {cache: 'no-store'});
+                if(!res.ok) continue;
+                const blob = await res.blob();
+                const file = new File([blob], preset.name, {type: blob.type || 'application/pdf'});
+                await window.addProtectedFile('magazine', file);
+                names.add(preset.name.toLowerCase());
+            } catch (err) {
+                console.warn('Failed to seed preset magazine file', preset.name, err);
+            }
+        }
+    };
+
     // Admin helpers
     window.adminListUsers = function(){ return getUsers(); }
     window.adminDeleteUser = function(username){
