@@ -1,0 +1,10 @@
+{
+  "users": [
+    {
+      "username": "thanatoszhang",
+      "password": "1234567890",
+      "createdAt": "2025-01-01T00:00:00Z",
+      "isAdmin": true
+    }
+  ]
+}

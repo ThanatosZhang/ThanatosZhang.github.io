@@ -398,6 +398,20 @@ footer p {
     margin-bottom: 7px;
 }
 
+/* Auth / Admin styles */
+.auth-box, .admin-box { background: var(--surface); padding: 28px; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.06); margin: 40px auto; max-width:520px; }
+.auth-box h2 { margin-bottom: 14px; color: var(--primary); }
+.auth-box label { display:block; margin-bottom:10px; color:var(--text-primary); }
+.auth-box input { width:100%; padding:8px 10px; margin-top:6px; border:1px solid var(--border); border-radius:6px; }
+.button.ghost { background: transparent; color: var(--primary); border:1px solid var(--border); }
+.button.small { padding:4px 8px; font-size:0.8rem; }
+.muted { margin-top:10px; color:var(--text-secondary); }
+.admin-table { width:100%; border-collapse: collapse; }
+.admin-table th, .admin-table td { border:1px solid var(--border); padding:8px; text-align:left; }
+.log { padding:8px 0; border-bottom:1px dashed var(--border); color:var(--text-secondary); }
+
+@media (max-width: 900px){ .container{ width:92%; } }
+
 @media (max-width: 1080px) {
     .container {
         width: 90%;

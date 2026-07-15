@@ -164,6 +164,14 @@
         Game author: <a href="https://siyuanli.tech" target="_blank">Siyuan Li</a>
     </div>
     <script>
+        // Require login to access this page
+        (function(){
+            var s = document.createElement('script');
+            s.src = 'auth.js';
+            s.onload = function(){ if(window.requireAuth) window.requireAuth(); };
+            document.head.appendChild(s);
+        })();
+
         const gameContainer = document.getElementById("gameContainer");
         const scoreDisplay = document.getElementById("score");
         const timerDisplay = document.getElementById("timer");
